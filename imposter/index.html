@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>מי המתחזה</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&family=Secular+One&display=swap">
+<style>
+/* Layout: one narrow column, "case file" cards on a dark interrogation-room table. Single dark look by choice. */
+:root {
+  --table: #13262b;
+  --table-2: #1b343a;
+  --line: #2c4b52;
+  --ink: #eef3f1;
+  --muted: #9db4b3;
+  --card: #f1e7d2;
+  --card-ink: #2a2620;
+  --card-muted: #7b6f5c;
+  --stamp: #e5484d;
+  --gold: #f2b134;
+  --ok: #4cc38a;
+  --display: "Secular One", "Rubik", "Arial Hebrew", system-ui, sans-serif;
+  --body: "Rubik", "Arial Hebrew", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(ellipse 120% 60% at 50% 0%, var(--table-2), var(--table) 70%) fixed, var(--table);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+#app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+header.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2rem, 8vw, 2.75rem);
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+h1 .q { color: var(--stamp); }
+.tag { color: var(--muted); font-size: 0.875rem; }
+h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.25rem;
+  margin: 0;
+  text-wrap: balance;
+}
+.panel {
+  background: color-mix(in srgb, var(--table-2) 70%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.row { display: flex; gap: 8px; align-items: center; }
+.between { justify-content: space-between; }
+.hint-text { color: var(--muted); font-size: 0.875rem; margin: 0; }
+
+input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--ink);
+  background: var(--table);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+input[type="text"]:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+button {
+  font: inherit;
+  border: 0;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--ink);
+  background: var(--line);
+  font-weight: 500;
+}
+button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary {
+  background: var(--gold);
+  color: #1d1606;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.25rem;
+  padding: 14px 18px;
+  width: 100%;
+}
+.btn-danger { background: var(--stamp); color: #fff; }
+.btn-ghost { background: transparent; border: 1px solid var(--line); }
+.icon-btn { padding: 6px 10px; background: transparent; color: var(--muted); font-size: 1.1rem; line-height: 1; }
+.icon-btn:hover { color: var(--ink); }
+
+ol.players { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; counter-reset: p; }
+ol.players li {
+  counter-increment: p;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--table);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 6px 6px 6px;
+}
+ol.players li::before {
+  content: counter(p);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  width: 1.75rem; text-align: center; flex: none;
+}
+ol.players .name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
+.empty { color: var(--muted); text-align: center; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 8px 12px; border-radius: 999px; font-size: 0.9375rem;
+  background: transparent; border: 1px solid var(--line); color: var(--muted);
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--table); border-color: var(--ink); }
+
+.stepper { display: flex; align-items: center; gap: 4px; }
+.stepper output { min-width: 2ch; text-align: center; font-family: var(--display); font-size: 1.375rem; font-variant-numeric: tabular-nums; }
+.stepper button { width: 40px; height: 40px; padding: 0; font-size: 1.25rem; }
+
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+.switch input { appearance: none; width: 46px; height: 28px; border-radius: 999px; background: var(--line); position: relative; flex: none; cursor: pointer; transition: background .2s; margin: 0; }
+.switch input::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); transition: inset-inline-start .2s; }
+.switch input:checked { background: var(--ok); }
+.switch input:checked::after { inset-inline-start: 21px; }
+.switch input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* Reveal screen */
+.progress { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 0.9375rem; }
+.progress b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 520px) { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  max-width: 100%;
+  perspective: 900px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: none;
+  cursor: pointer;
+  outline: none;
+}
+.card:focus-visible .face { outline: 3px solid var(--gold); outline-offset: 2px; }
+.flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .35s cubic-bezier(.3,.7,.3,1); }
+.card.open .flip { transform: rotateY(180deg); }
+.face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--card-ink);
+  box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 8px 18px rgba(0,0,0,.35);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 12px;
+  gap: 6px;
+  overflow: hidden;
+}
+.front::before {
+  content: ""; position: absolute; inset: 8px; border: 1.5px dashed color-mix(in srgb, var(--card-muted) 55%, transparent); border-radius: 8px; pointer-events: none;
+}
+.front .num { position: absolute; top: 14px; inset-inline-start: 16px; font-size: 0.75rem; color: var(--card-muted); letter-spacing: .08em; font-variant-numeric: tabular-nums; }
+.front .pname { font-family: var(--display); font-size: clamp(1.25rem, 5.5vw, 1.75rem); line-height: 1.15; overflow-wrap: anywhere; }
+.front .cta { font-size: 0.8125rem; color: var(--card-muted); }
+.front .seen {
+  position: absolute; bottom: 14px;
+  font-size: 0.75rem; letter-spacing: .1em; font-weight: 700;
+  color: var(--ok); border: 2px solid var(--ok); border-radius: 6px; padding: 1px 8px;
+  transform: rotate(-6deg);
+}
+.back { transform: rotateY(180deg); }
+.back .label { font-size: 0.8125rem; color: var(--card-muted); }
+.back .word { font-family: var(--display); font-size: clamp(1.4rem, 6.5vw, 2rem); line-height: 1.1; overflow-wrap: anywhere; }
+.back .cat { font-size: 0.8125rem; color: var(--card-muted); }
+.back.imp { background: var(--stamp); color: #fff; }
+.back.imp .label, .back.imp .cat { color: rgba(255,255,255,.85); }
+.back.imp .stamp {
+  font-family: var(--display); font-size: clamp(1.4rem, 6.5vw, 2rem);
+  border: 3px solid #fff; border-radius: 8px; padding: 0 10px; transform: rotate(-5deg);
+}
+.back.imp .hintbox { background: rgba(0,0,0,.18); border-radius: 8px; padding: 4px 10px; font-size: 0.9375rem; }
+.back.imp .hintbox b { font-family: var(--display); font-weight: 400; font-size: 1.125rem; }
+
+/* Play screen */
+.starter { text-align: center; padding: 24px 16px; }
+.starter .who { font-family: var(--display); font-size: clamp(2rem, 9vw, 2.75rem); color: var(--gold); line-height: 1.1; overflow-wrap: anywhere; }
+.timer { font-family: var(--display); font-size: 3rem; text-align: center; font-variant-numeric: tabular-nums; line-height: 1; }
+.timer.done { color: var(--stamp); }
+.reveal-box {
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none;
+  background: var(--table); border: 2px dashed var(--stamp); border-radius: 14px;
+  min-height: 132px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  text-align: center; padding: 16px; cursor: pointer;
+}
+.reveal-box .big { font-family: var(--display); font-size: 1.625rem; color: var(--stamp); overflow-wrap: anywhere; }
+.reveal-box.open { background: var(--stamp); border-style: solid; }
+.reveal-box.open .big { color: #fff; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.rules { color: var(--muted); font-size: 0.9375rem; }
+.rules summary { cursor: pointer; color: var(--ink); font-weight: 500; }
+.rules ol { padding-inline-start: 1.25rem; margin: 8px 0 0; display: flex; flex-direction: column; gap: 4px; }
+
+@media (prefers-reduced-motion: reduce) { .flip, .switch input, .switch input::after { transition: none; } }
+</style>
+</head>
+<body>
+<div id="app" dir="rtl" lang="he"></div>
+
+<script>
+document.documentElement.lang = "he";
+document.documentElement.dir = "rtl";
+
+/* ---------- מאגר מילים: מילה + רמז למתחזה ---------- */
+const BANK = {
+  "אוכל": [
+    ["פיצה","איטליה"],["פלאפל","כדורים"],["סושי","אורז"],["המבורגר","לחמנייה"],["שקשוקה","מחבת"],
+    ["חומוס","גרגירים"],["גלידה","קר"],["שוקולד","מתוק"],["פופקורן","סרט"],["ספגטי","רוטב"],
+    ["בורקס","בצק"],["קפה","בוקר"],["עוגה","יום הולדת"],["פנקייק","סירופ"],["טוסט","גבינה"],
+    ["מרק","חורף"],["ביצה","תרנגולת"],["אבטיח","גרעינים"],["שווארמה","שיפוד"],["סלט","קערה"]
+  ],
+  "חיות": [
+    ["פיל","אפריקה"],["ג'ירפה","גבוה"],["פינגווין","קרח"],["כלב","נאמנות"],["חתול","שפם"],
+    ["אריה","מלך"],["דולפין","חכם"],["נחש","ארס"],["קוף","בננה"],["ינשוף","לילה"],
+    ["תמנון","דיו"],["צב","איטי"],["זברה","פסים"],["כריש","סנפיר"],["קנגורו","אוסטרליה"],
+    ["פרפר","זחל"],["דבורה","פרח"],["גמל","מדבר"],["תוכי","צבעוני"],["עכבר","גבינה"]
+  ],
+  "מקומות": [
+    ["בית ספר","צלצול"],["בית חולים","לבן"],["חוף ים","חול"],["שדה תעופה","מזוודה"],["קולנוע","חושך"],
+    ["סופרמרקט","עגלה"],["ספרייה","שקט"],["מסעדה","תפריט"],["חדר כושר","זיעה"],["גן חיות","כלובים"],
+    ["בריכה","כלור"],["תחנת דלק","מכונית"],["מספרה","מראה"],["לונה פארק","תור"],["תחנת רכבת","לוח זמנים"],
+    ["מוזיאון","תמונות"],["אצטדיון","קהל"],["בית קפה","שולחן"],["קניון","חנויות"],["מעלית","קומות"]
+  ],
+  "מקצועות": [
+    ["רופא","חלוק"],["שוטר","מדים"],["טייס","עננים"],["מורה","לוח"],["שף","כובע"],
+    ["כבאי","סולם"],["צלם","רגע"],["ספר","כיסא"],["נגר","עץ"],["דייג","סירה"],
+    ["עורך דין","חליפה"],["אסטרונאוט","כוכבים"],["זמר","במה"],["מתכנת","מקלדת"],["וטרינר","חיות"],
+    ["נהג מונית","כתובת"],["ליצן","צחוק"],["קוסם","קלפים"],["גנן","השקיה"],["דוור","מכתבים"]
+  ],
+  "חפצים": [
+    ["מטרייה","גשם"],["טלפון","מסך"],["שעון","זמן"],["מראה","השתקפות"],["כרית","שינה"],
+    ["מפתח","דלת"],["משקפיים","עיניים"],["מברשת שיניים","בוקר"],["תיק","גב"],["מנורה","אור"],
+    ["מחשב","עכבר"],["כדור","עגול"],["מספריים","נייר"],["נר","אש"],["גיטרה","מיתרים"],
+    ["אופניים","פדלים"],["מזגן","שלט"],["ארנק","כסף"],["מקרר","מטבח"],["כיסא","ישיבה"]
+  ],
+  "ספורט": [
+    ["כדורגל","שער"],["כדורסל","גבוהים"],["טניס","מחבט"],["שחייה","מים"],["ריצה","נעליים"],
+    ["אגרוף","כפפות"],["יוגה","מזרן"],["כדורעף","רשת"],["גלישה","גלים"],["סקי","שלג"],
+    ["שחמט","מלך"],["באולינג","מסלול"],["גולף","חור"],["התעמלות","גמישות"],["רכיבה על סוסים","אוכף"],
+    ["ג'ודו","חגורה"],["טניס שולחן","קטן"],["אופני הרים","בוץ"],["צלילה","חמצן"],["כדוריד","שבע"]
+  ],
+  "ישראל": [
+    ["ים המלח","ציפה"],["ירושלים","עתיקה"],["תל אביב","בועה"],["מצדה","זריחה"],["אילת","דרום"],
+    ["שוק מחנה יהודה","דוכנים"],["כנרת","מפלס"],["קיבוץ","משותף"],["פסח","ניקיון"],["חנוכה","שמן"],
+    ["פורים","תחפושת"],["ראש השנה","תפוח"],["סוכות","ענפים"],["שבת","מנוחה"],["במבה","בוטנים"],
+    ["קרטיב","קיץ"],["מכבייה","מדליה"],["החרמון","שלג"],["הכותל","אבנים"],["מלבי","ורוד"]
+  ]
+};
+const CATS = Object.keys(BANK);
+
+/* ---------- אחסון מקומי (נוחות בלבד) ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("imposter:" + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("imposter:" + k, JSON.stringify(v)); } catch {} }
+};
+
+/* ---------- אקראיות ---------- */
+function rnd(n) { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; }
+function pickSome(arr, k) { const c = arr.slice(); const out = []; while (out.length < k && c.length) out.push(c.splice(rnd(c.length), 1)[0]); return out; }
+
+/* ---------- מצב ---------- */
+let S = {
+  screen: "setup",
+  players: store.get("players", ["נועה", "איתי", "מאיה", "יונתן"]),
+  cats: store.get("cats", CATS.slice()),
+  impCount: store.get("impCount", 1),
+  showHint: store.get("showHint", true),
+  showCat: store.get("showCat", true),
+  used: [],
+  round: null   // { word, hint, cat, imposters:[idx], seen:[bool], starter }
+};
+function save() {
+  store.set("players", S.players); store.set("cats", S.cats);
+  store.set("impCount", S.impCount); store.set("showHint", S.showHint); store.set("showCat", S.showCat);
+}
+const maxImp = () => Math.max(1, Math.floor((S.players.length - 1) / 2));
+
+const app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+/* ---------- מסך הגדרות ---------- */
+function renderSetup() {
+  if (S.impCount > maxImp()) S.impCount = maxImp();
+  const n = S.players.length;
+  const canStart = n >= 3 && S.cats.length > 0;
+  app.innerHTML = `
+    <header class="brand">
+      <h1>מי המתחזה<span class="q">?</span></h1>
+      <span class="tag">משחק מסיבה · 3+ שחקנים</span>
+    </header>
+
+    <section class="panel" aria-labelledby="h-players">
+      <div class="row between"><h2 id="h-players">שחקנים</h2><span class="tag">${n} שחקנים</span></div>
+      <form class="row" id="add-form" autocomplete="off">
+        <input type="text" id="name-input" placeholder="שם השחקן" maxlength="20" enterkeyhint="done" aria-label="שם השחקן">
+        <button type="submit" class="btn-ghost">הוספה</button>
+      </form>
+      ${n ? `<ol class="players">${S.players.map((p, i) => `
+        <li>
+          <span class="name">${esc(p)}</span>
+          <button class="icon-btn" data-up="${i}" aria-label="הזזה למעלה" ${i === 0 ? "disabled" : ""}>↑</button>
+          <button class="icon-btn" data-down="${i}" aria-label="הזזה למטה" ${i === n - 1 ? "disabled" : ""}>↓</button>
+          <button class="icon-btn" data-del="${i}" aria-label="מחיקת ${esc(p)}">✕</button>
+        </li>`).join("")}</ol>` : `<div class="empty">הוסיפו לפחות 3 שחקנים</div>`}
+      <p class="hint-text">הכרטיסים יופיעו בסדר הזה.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="h-cats">
+      <div class="row between"><h2 id="h-cats">קטגוריות</h2>
+        <button class="icon-btn" id="all-cats" style="font-size:.875rem">${S.cats.length === CATS.length ? "נקה הכל" : "בחר הכל"}</button></div>
+      <div class="chips">${CATS.map(c => `<button class="chip" data-cat="${esc(c)}" aria-pressed="${S.cats.includes(c)}">${esc(c)}</button>`).join("")}</div>
+    </section>
+
+    <section class="panel" aria-label="הגדרות">
+      <div class="row between">
+        <h2>מספר מתחזים</h2>
+        <div class="stepper">
+          <button id="imp-minus" aria-label="פחות מתחזים" ${S.impCount <= 1 ? "disabled" : ""}>−</button>
+          <output id="imp-out" aria-live="polite">${S.impCount}</output>
+          <button id="imp-plus" aria-label="יותר מתחזים" ${S.impCount >= maxImp() ? "disabled" : ""}>+</button>
+        </div>
+      </div>
+      <label class="switch" for="opt-hint"><span>להציג רמז למתחזה</span><input type="checkbox" id="opt-hint" ${S.showHint ? "checked" : ""}></label>
+      <label class="switch" for="opt-cat"><span>להציג למתחזה את הקטגוריה</span><input type="checkbox" id="opt-cat" ${S.showCat ? "checked" : ""}></label>
+    </section>
+
+    <button class="btn-primary" id="start" ${canStart ? "" : "disabled"}>סיימתי, לחלק כרטיסים</button>
+
+    <details class="rules">
+      <summary>איך משחקים?</summary>
+      <ol>
+        <li>כל שחקן בתורו מחזיק לחיצה על הכרטיס עם השם שלו ורואה את המילה הסודית. רק הוא מסתכל.</li>
+        <li>המתחזה לא יודע את המילה. הוא מקבל רק רמז קטן.</li>
+        <li>מסתובבים במעגל, וכל אחד אומר מילה אחת שקשורה למילה הסודית. לא מדי ברור, כדי לא לגלות למתחזה.</li>
+        <li>אחרי סבב או שניים מצביעים: מי המתחזה?</li>
+        <li>אם תפסו את המתחזה, יש לו הזדמנות אחרונה לנחש את המילה. ניחש נכון? הוא מנצח.</li>
+      </ol>
+    </details>`;
+
+  const input = app.querySelector("#name-input");
+  app.querySelector("#add-form").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = input.value.trim();
+    if (!v) return;
+    S.players.push(v); save(); renderSetup();
+    app.querySelector("#name-input").focus();
+  });
+  app.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { S.players.splice(+b.dataset.del, 1); save(); renderSetup(); });
+  app.querySelectorAll("[data-up]").forEach(b => b.onclick = () => { const i = +b.dataset.up; [S.players[i-1], S.players[i]] = [S.players[i], S.players[i-1]]; save(); renderSetup(); });
+  app.querySelectorAll("[data-down]").forEach(b => b.onclick = () => { const i = +b.dataset.down; [S.players[i+1], S.players[i]] = [S.players[i], S.players[i+1]]; save(); renderSetup(); });
+  app.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => {
+    const c = b.dataset.cat;
+    S.cats = S.cats.includes(c) ? S.cats.filter(x => x !== c) : CATS.filter(x => x === c || S.cats.includes(x));
+    save(); renderSetup();
+  });
+  app.querySelector("#all-cats").onclick = () => { S.cats = S.cats.length === CATS.length ? [] : CATS.slice(); save(); renderSetup(); };
+  app.querySelector("#imp-minus").onclick = () => { S.impCount = Math.max(1, S.impCount - 1); save(); renderSetup(); };
+  app.querySelector("#imp-plus").onclick = () => { S.impCount = Math.min(maxImp(), S.impCount + 1); save(); renderSetup(); };
+  app.querySelector("#opt-hint").onchange = e => { S.showHint = e.target.checked; save(); };
+  app.querySelector("#opt-cat").onchange = e => { S.showCat = e.target.checked; save(); };
+  app.querySelector("#start").onclick = newRound;
+}
+
+/* ---------- סיבוב חדש ---------- */
+function newRound() {
+  let pool = [];
+  S.cats.forEach(c => BANK[c].forEach(([w, h]) => pool.push({ w, h, c })));
+  let fresh = pool.filter(x => !S.used.includes(x.w));
+  if (!fresh.length) { S.used = []; fresh = pool; }
+  const pick = fresh[rnd(fresh.length)];
+  S.used.push(pick.w);
+  const idx = S.players.map((_, i) => i);
+  S.round = {
+    word: pick.w, hint: pick.h, cat: pick.c,
+    imposters: pickSome(idx, Math.min(S.impCount, maxImp())),
+    seen: S.players.map(() => false),
+    starter: rnd(S.players.length)
+  };
+  S.screen = "reveal";
+  render();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- מסך הכרטיסים ---------- */
+function backFace(i) {
+  const r = S.round;
+  if (r.imposters.includes(i)) {
+    return `<div class="face back imp">
+      <span class="label">התפקיד שלך</span>
+      <span class="stamp">מתחזה</span>
+      ${S.showCat ? `<span class="cat">קטגוריה: ${esc(r.cat)}</span>` : ""}
+      ${S.showHint ? `<span class="hintbox">רמז: <b>${esc(r.hint)}</b></span>` : `<span class="cat">אין רמז. תאלתר!</span>`}
+    </div>`;
+  }
+  return `<div class="face back">
+    <span class="label">המילה הסודית</span>
+    <span class="word">${esc(r.word)}</span>
+    <span class="cat">${esc(r.cat)}</span>
+  </div>`;
+}
+
+function updateProgress(card) {
+  const front = card.querySelector(".front");
+  if (!front.querySelector(".seen")) front.insertAdjacentHTML("beforeend", `<span class="seen">נצפה</span>`);
+  const seenCount = S.round.seen.filter(Boolean).length;
+  const all = seenCount === S.players.length;
+  app.querySelector("#seen-count").textContent = `${seenCount}/${S.players.length}`;
+  const go = app.querySelector("#go");
+  go.disabled = !all;
+  go.textContent = all ? "כולם ראו, מתחילים!" : "מחכים שכולם יראו…";
+}
+
+function renderReveal() {
+  const r = S.round;
+  const seenCount = r.seen.filter(Boolean).length;
+  const all = seenCount === S.players.length;
+  app.innerHTML = `
+    <header class="brand">
+      <h1>מי המתחזה<span class="q">?</span></h1>
+      <button class="btn-ghost" id="back" style="padding:8px 12px">חזרה</button>
+    </header>
+    <div class="progress">
+      <span>החזיקו לחיצה על הכרטיס שלכם. שחררו כדי להסתיר.</span>
+      <span><b id="seen-count">${seenCount}/${S.players.length}</b> ראו</span>
+    </div>
+    <div class="cards">
+      ${S.players.map((p, i) => `
+        <div class="card" data-card="${i}" tabindex="0" role="button" aria-label="הכרטיס של ${esc(p)}. החזיקו כדי לראות">
+          <div class="flip">
+            <div class="face front">
+              <span class="num">${String(i + 1).padStart(2, "0")}</span>
+              <span class="pname">${esc(p)}</span>
+              <span class="cta">החזק כדי לראות</span>
+              ${r.seen[i] ? `<span class="seen">נצפה</span>` : ""}
+            </div>
+            ${backFace(i)}
+          </div>
+        </div>`).join("")}
+    </div>
+    <button class="btn-primary" id="go" ${all ? "" : "disabled"}>${all ? "כולם ראו, מתחילים!" : "מחכים שכולם יראו…"}</button>`;
+
+  app.querySelector("#back").onclick = () => { S.screen = "setup"; render(); };
+  app.querySelector("#go").onclick = () => { S.screen = "play"; render(); window.scrollTo(0, 0); };
+
+  app.querySelectorAll(".card").forEach(card => {
+    const i = +card.dataset.card;
+    const open = () => card.classList.add("open");
+    const close = () => {
+      if (!card.classList.contains("open")) return;
+      card.classList.remove("open");
+      if (!S.round.seen[i]) {
+        S.round.seen[i] = true;
+        updateProgress(card);
+      }
+    };
+    card.addEventListener("pointerdown", e => { e.preventDefault(); try { card.setPointerCapture(e.pointerId); } catch {} open(); });
+    card.addEventListener("pointerup", close);
+    card.addEventListener("pointercancel", close);
+    card.addEventListener("lostpointercapture", close);
+    card.addEventListener("contextmenu", e => e.preventDefault());
+    card.addEventListener("keydown", e => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); open(); } });
+    card.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") close(); });
+    card.addEventListener("blur", close);
+  });
+}
+
+/* ---------- מסך המשחק ---------- */
+let timerId = null, timeLeft = 0;
+function renderPlay() {
+  const r = S.round;
+  const imps = r.imposters.map(i => S.players[i]);
+  app.innerHTML = `
+    <header class="brand">
+      <h1>מי המתחזה<span class="q">?</span></h1>
+      ${S.showCat ? `<span class="tag">${esc(r.cat)}</span>` : ""}
+    </header>
+    <section class="panel starter">
+      <span class="tag">מתחיל/ה לדבר</span>
+      <div class="who">${esc(S.players[r.starter])}</div>
+      <p class="hint-text">ממשיכים לפי הסדר. כל אחד אומר מילה אחת.</p>
+    </section>
+
+    <section class="panel">
+      <div class="row between"><h2>טיימר דיון</h2>
+        <div class="row">
+          <button class="btn-ghost" data-t="60" style="padding:8px 12px">1 דק׳</button>
+          <button class="btn-ghost" data-t="120" style="padding:8px 12px">2 דק׳</button>
+          <button class="btn-ghost" data-t="180" style="padding:8px 12px">3 דק׳</button>
+        </div>
+      </div>
+      <div class="timer" id="timer" aria-live="off">--:--</div>
+    </section>
+
+    <section class="stack">
+      <div class="reveal-box" id="reveal" tabindex="0" role="button" aria-label="החזיקו כדי לחשוף את המתחזה">
+        <span class="big">${imps.length > 1 ? "מי המתחזים?" : "מי המתחזה?"}</span>
+        <span class="hint-text">אחרי ההצבעה: החזיקו כדי לחשוף</span>
+      </div>
+      <button class="btn-primary" id="again">סיבוב חדש, אותם שחקנים</button>
+      <button class="btn-ghost" id="edit">עריכת שחקנים והגדרות</button>
+    </section>`;
+
+  const box = app.querySelector("#reveal");
+  const closed = box.innerHTML;
+  const openHTML = `<span class="hint-text" style="color:#fff">${imps.length > 1 ? "המתחזים" : "המתחזה"}</span>
+    <span class="big">${imps.map(esc).join(" ו")}</span>
+    <span style="color:#fff">המילה הייתה: <b>${esc(r.word)}</b></span>`;
+  const open = () => { box.classList.add("open"); box.innerHTML = openHTML; };
+  const close = () => { box.classList.remove("open"); box.innerHTML = closed; };
+  box.addEventListener("pointerdown", e => { e.preventDefault(); try { box.setPointerCapture(e.pointerId); } catch {} open(); });
+  ["pointerup", "pointercancel", "lostpointercapture", "blur"].forEach(ev => box.addEventListener(ev, close));
+  box.addEventListener("contextmenu", e => e.preventDefault());
+  box.addEventListener("keydown", e => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); open(); } });
+  box.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") close(); });
+
+  const tEl = app.querySelector("#timer");
+  const draw = () => { const m = Math.floor(timeLeft / 60), s = timeLeft % 60; tEl.textContent = `${m}:${String(s).padStart(2, "0")}`; tEl.classList.toggle("done", timeLeft === 0); };
+  app.querySelectorAll("[data-t]").forEach(b => b.onclick = () => {
+    clearInterval(timerId); timeLeft = +b.dataset.t; draw();
+    timerId = setInterval(() => { timeLeft = Math.max(0, timeLeft - 1); draw(); if (!timeLeft) { clearInterval(timerId); try { navigator.vibrate && navigator.vibrate(400); } catch {} } }, 1000);
+  });
+
+  app.querySelector("#again").onclick = () => { clearInterval(timerId); newRound(); };
+  app.querySelector("#edit").onclick = () => { clearInterval(timerId); S.screen = "setup"; render(); };
+}
+
+function render() {
+  if (S.screen === "reveal" && S.round) renderReveal();
+  else if (S.screen === "play" && S.round) renderPlay();
+  else { S.screen = "setup"; renderSetup(); }
+}
+
+/* שמירת מצב המשחק בעדכון חי של העמוד (כשקיים) */
+window.claude?.hot?.snapshot?.(() => ({ S }));
+function start(data) { if (data && data.S) S = Object.assign(S, data.S); render(); }
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+</body>
+</html>
