@@ -40,7 +40,7 @@
   <section id="view"></section>
 </main>
 <script>
-const st={n:'',s:'',p:'',q:'',w:'',i:'',f:'',t:''};
+const st={n:'',s:'',p:'',q:'',w:'',i:'',f:'',t:'',slug:''};
 let step=0;
 const K=()=>{try{return localStorage.getItem('gkey')||''}catch(e){return''}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -68,7 +68,7 @@ function render(){
  if(s.at&&st[s.k])preview(s.net,st[s.k]);
  hook();
 }
-function nav(dis){return `<div class="row">${step?'<button id="back">Back</button>':''}<button class="go" id="next" ${dis?'disabled':''}>${step===steps.length-2?'Create page':'Next'}</button></div>`}
+function nav(dis){return `<div class="row">${step?'<button id="back">Back</button>':''}<button class="go" id="next" ${dis?'disabled':''}>${'Next'}</button></div>`}
 function hook(){const b=document.getElementById('back');if(b)b.onclick=()=>go(-1);document.getElementById('next').onclick=()=>go(1)}
 function go(d){step+=d;render()}
 let pvT;
@@ -113,19 +113,49 @@ async function search(q){
   box.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{const r=plRes[b.dataset.i];st.p=r.p||'';st.q=r.q||'';st.s=r.name;box.querySelectorAll('.opt').forEach(x=>x.classList.toggle('sel',x===b))});
  }catch(e){box.innerHTML='<p class="muted">Search failed: '+esc(e.message)+'</p>'}
 }
-function link(){
- const d={};for(const k in st)if(st[k])d[k]=st[k];
- if(d.s===d.n)delete d.s;
- const b=new TextEncoder().encode(JSON.stringify(d));let s='';b.forEach(c=>s+=String.fromCharCode(c));
- return new URL('../p/',location.href).href+'?d='+btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-}
+const REPO='cohenom/games',BR='claude/vigilant-hopper-plgt9x';
+const TK=()=>{try{return localStorage.getItem('ghtok')||''}catch(e){return''}};
+const slugOf=n=>(n.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||'page')+'_links';
+const b64=t=>{const b=new TextEncoder().encode(t);let s='';b.forEach(c=>s+=String.fromCharCode(c));return btoa(s)};
+async function gh(path,opt={}){const r=await fetch('https://api.github.com/repos/'+REPO+path,{...opt,headers:{Authorization:'Bearer '+TK(),Accept:'application/vnd.github+json',...(opt.headers||{})}});if(r.status===404)return null;const j=await r.json();if(!r.ok)throw new Error(j.message||r.status);return j}
 function done(v){
- const u=link();
- v.innerHTML=`<h1>Your page is ready</h1><p class="hint">Write this link onto the NFC card.</p>
-  <div class="out" id="u">${esc(u)}</div><p class="muted">${u.length} characters${u.length>850?' — too long for NFC; shorten fields':u.length>490?' — needs an NTAG216 card':u.length>130?' — needs NTAG215 or bigger (NTAG213 too small)':' — fits any NFC card'}</p>
-  <div class="row"><button id="back">Back</button><button id="cp">Copy</button><button class="go" id="op">Open page</button></div>
-  <div class="row"><button id="again" style="flex:1">Make another</button></div>`;
+ const tokUrl='https://github.com/settings/personal-access-tokens/new?name=links-maker&description=Link+page+maker&target_name=cohenom&expires_in=none&contents=write';
+ v.innerHTML=`<h1>Pick the link</h1><p class="hint">Letters, numbers and _ only.</p>
+  <div class="pre" style="--x:0"><input id="sl" value="${esc(st.slug||slugOf(st.n))}" autocomplete="off" style="padding-left:18px"></div>
+  <p class="muted" id="pre"></p>
+  <div id="tk" ${TK()?'hidden':''}><p class="hint" style="margin-top:22px">One-time setup on this browser: <a href="${tokUrl}" target="_blank" rel="noopener" style="color:var(--accent)">create a GitHub token</a> (repository: games, Contents: Read and write), then paste it here.</p><input id="tok" placeholder="github_pat_..." autocomplete="off"></div>
+  <p class="muted" id="msg"></p>
+  <div class="row"><button id="back">Back</button><button class="go" id="mk">Create page</button></div>`;
+ const sl=document.getElementById('sl'),pre=document.getElementById('pre'),msg=document.getElementById('msg');
+ const upd=()=>{sl.value=sl.value.toLowerCase().replace(/[^a-z0-9_]/g,'_');st.slug=sl.value;pre.textContent='https://cohenom.github.io/games/'+sl.value+'/'};
+ sl.oninput=upd;upd();
  document.getElementById('back').onclick=()=>go(-1);
+ document.getElementById('mk').onclick=async e=>{
+  const t=document.getElementById('tok');if(t&&t.value.trim())try{localStorage.setItem('ghtok',t.value.trim())}catch(_){}
+  if(!TK()){msg.textContent='Paste the GitHub token first.';return}
+  const slug=st.slug;if(!/^[a-z0-9_]{2,}$/.test(slug)){msg.textContent='Link name too short.';return}
+  e.target.disabled=true;
+  try{
+   msg.textContent='Saving...';
+   const tpl=await (await fetch(new URL('../p/index.html',location.href),{cache:'no-store'})).text();
+   const d={};for(const k of 'nspqwift')if(st[k])d[k]=st[k];if(d.s===d.n)delete d.s;
+   const html=tpl.replace('<scr'+'ipt>','<scr'+'ipt>window.D='+JSON.stringify(d).replace(/</g,'\\u003c')+';\n');
+   const path='/contents/'+slug+'/index.html';
+   const cur=await gh(path+'?ref='+BR);
+   if(cur&&!confirm('/'+slug+'/ already exists. Replace it?')){e.target.disabled=false;msg.textContent='';return}
+   await gh(path,{method:'PUT',body:JSON.stringify({message:'Add '+slug+' page',content:b64(html),branch:BR,...(cur?{sha:cur.sha}:{})})});
+   const url='https://cohenom.github.io/games/'+slug+'/';
+   msg.textContent='Publishing (about a minute)...';
+   for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,5000));try{const r=await fetch(url+'?x='+Date.now(),{cache:'no-store'});if(r.ok&&(await r.text()).includes(JSON.stringify(d).slice(0,40).replace(/</g,'\\u003c')))break}catch(_){}}
+   ready(v,url);
+  }catch(err){msg.textContent='Failed: '+err.message+(/credential|401|Bad/.test(err.message)?' (token wrong — paste a new one)':'');if(/credential|401/.test(err.message))try{localStorage.removeItem('ghtok')}catch(_){};document.getElementById('tk').hidden=false;e.target.disabled=false}
+ };
+}
+function ready(v,u){
+ v.innerHTML=`<h1>Your page is live</h1><p class="hint">Write this link onto the NFC card.</p>
+  <div class="out">${esc(u)}</div>
+  <div class="row"><button id="cp">Copy</button><button class="go" id="op">Open page</button></div>
+  <div class="row"><button id="again" style="flex:1">Make another</button></div>`;
  document.getElementById('op').onclick=()=>open(u,'_blank');
  document.getElementById('cp').onclick=e=>{navigator.clipboard.writeText(u);e.target.textContent='Copied'};
  document.getElementById('again').onclick=()=>{for(const k in st)st[k]='';step=0;render()};
