@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <title>Link Page Maker</title>
 <style>
   :root{--bg:#f6f3ee;--card:#fff;--text:#1d1b19;--muted:#6b655e;--accent:#b08d57;--border:#e6e0d7}
@@ -46,7 +47,7 @@ const K=()=>{try{return localStorage.getItem('gkey')||''}catch(e){return''}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const clean=v=>v.trim().replace(/^https?:\/\/(www\.)?[^/]+\/(@)?/i,'').replace(/^@/,'').replace(/[/?#].*$/,'');
 const steps=[
- {k:'n',title:'What is the name?',hint:'Shown big at the top of the page.',ph:'Eli Cohen',req:1},
+ {k:'n',title:'What is the name?',hint:'Shown big at the top of the page.',ph:'',req:1},
  {k:'place',title:'Which place?',hint:'Search the business, then pick the right one. This becomes the Google review button.'},
  {k:'w',title:'Your website',hint:'Paste the URL. Leave blank if none.',ph:'https://example.co.il'},
  {k:'i',title:'Instagram',hint:'Type the @ and check the account below. Leave blank if none.',ph:'username',at:1,net:'instagram'},
@@ -160,7 +161,19 @@ function ready(v,u){
  document.getElementById('cp').onclick=e=>{navigator.clipboard.writeText(u);e.target.textContent='Copied'};
  document.getElementById('again').onclick=()=>{for(const k in st)st[k]='';step=0;render()};
 }
-render();
+async function gate(){
+ const v=document.getElementById('view');
+ if(TK()){try{const r=await gh('');if(r&&r.permissions&&r.permissions.push)return render()}catch(e){}try{localStorage.removeItem('ghtok')}catch(_){}}
+ document.getElementById('bar').innerHTML='';
+ const tokUrl='https://github.com/settings/personal-access-tokens/new?name=links-maker&description=Link+page+maker&target_name=cohenom&expires_in=none&contents=write';
+ v.innerHTML=`<h1>Private</h1><p class="hint">Paste the access token to use the maker. (<a href="${tokUrl}" target="_blank" rel="noopener" style="color:var(--accent)">make one</a>: repository games, Contents read and write)</p><input id="tok" type="password" autocomplete="off"><p class="muted" id="msg"></p><div class="row"><button class="go" id="ok">Unlock</button></div>`;
+ const t=document.getElementById('tok');t.focus();
+ const ok=async()=>{try{localStorage.setItem('ghtok',t.value.trim())}catch(_){}
+  try{const r=await gh('');if(r&&r.permissions&&r.permissions.push)return render()}catch(e){}
+  try{localStorage.removeItem('ghtok')}catch(_){};document.getElementById('msg').textContent='That token does not have access.'};
+ document.getElementById('ok').onclick=ok;t.onkeydown=e=>{if(e.key==='Enter')ok()};
+}
+gate();
 </script>
 </body>
 </html>
